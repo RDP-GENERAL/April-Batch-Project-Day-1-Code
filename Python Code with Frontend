@@ -1,0 +1,125 @@
+import mysql.connector
+import tkinter as tk
+from tkinter import messagebox
+
+# Database connection
+conn_obj = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="R@jdeep123",
+    database="april_python_project_day1")
+cur_obj = conn_obj.cursor()
+
+# Function to insert data into MySQL
+def data_entry_sql(full_name, address, ph_no, user_id, password):
+    sql = "INSERT INTO cust_details (full_name, address, phone_number, user_id, password) VALUES (%s, %s, %s, %s, %s)"
+    data = (full_name, address, ph_no, user_id, password)
+
+    try:
+        cur_obj.execute(sql, data)
+        conn_obj.commit()
+        return True
+    except mysql.connector.Error as e:
+        messagebox.showerror("Database Error", f"Error inserting data: {e}")
+        conn_obj.rollback()
+        return False
+
+# Function to fetch user data
+def data_retrieve(user_id):
+    query = f"SELECT * FROM cust_details WHERE user_id = %s"
+    try:
+        cur_obj.execute(query, (user_id,))
+        result = cur_obj.fetchone()
+        return result
+    except mysql.connector.Error as e:
+        messagebox.showerror("Database Error", f"Error retrieving data: {e}")
+        conn_obj.rollback()
+        return None
+
+# Function to handle login
+def login():
+    user_id = entry_user_id.get()
+    password = entry_password.get()
+    user_data = data_retrieve(user_id)
+    if user_data:
+        if password == user_data[-1]:
+            messagebox.showinfo("Success", "Access Granted! ✅")
+        else:
+            messagebox.showwarning("Failed", "Invalid Password ❌")
+    else:
+        messagebox.showinfo("Not Found", "User not found. Please register.")
+        show_registration()
+
+# Function to handle registration
+def register():
+    full_name = entry_full_name.get().upper()
+    address = entry_address.get()
+    ph_no = entry_phone.get()
+    user_id = entry_new_user_id.get()
+    password = entry_new_password.get()
+
+    if not (full_name and address and ph_no and user_id and password):
+        messagebox.showwarning("Missing Data", "Please fill all fields.")
+        return
+
+    if data_entry_sql(full_name, address, ph_no, user_id, password):
+        messagebox.showinfo("Success", "Registration successful! 🎉")
+        registration_window.destroy()
+
+# Switch to registration screen
+def show_registration():
+    global registration_window
+    registration_window = tk.Toplevel(root)
+    registration_window.title("New User Registration")
+    registration_window.geometry("400x400")
+    registration_window.configure(bg="#e6f2ff")
+
+    tk.Label(registration_window, text="Register", font=("Arial", 20, "bold"), bg="#e6f2ff").pack(pady=10)
+
+    global entry_full_name, entry_address, entry_phone, entry_new_user_id, entry_new_password
+
+    tk.Label(registration_window, text="Full Name", bg="#e6f2ff").pack()
+    entry_full_name = tk.Entry(registration_window, width=30)
+    entry_full_name.pack()
+
+    tk.Label(registration_window, text="Address", bg="#e6f2ff").pack()
+    entry_address = tk.Entry(registration_window, width=30)
+    entry_address.pack()
+
+    tk.Label(registration_window, text="Phone Number", bg="#e6f2ff").pack()
+    entry_phone = tk.Entry(registration_window, width=30)
+    entry_phone.pack()
+
+    tk.Label(registration_window, text="User ID", bg="#e6f2ff").pack()
+    entry_new_user_id = tk.Entry(registration_window, width=30)
+    entry_new_user_id.pack()
+
+    tk.Label(registration_window, text="Password", bg="#e6f2ff").pack()
+    entry_new_password = tk.Entry(registration_window, width=30, show="*")
+    entry_new_password.pack()
+
+    tk.Button(registration_window, text="Register", command=register, bg="#007acc", fg="white").pack(pady=20)
+
+# Tkinter main window
+root = tk.Tk()
+root.title("Customer Login")
+root.geometry("400x300")
+root.configure(bg="#f2f2f2")
+
+tk.Label(root, text="Login", font=("Arial", 20, "bold"), bg="#f2f2f2").pack(pady=10)
+
+tk.Label(root, text="User ID", bg="#f2f2f2").pack()
+entry_user_id = tk.Entry(root, width=30)
+entry_user_id.pack()
+
+tk.Label(root, text="Password", bg="#f2f2f2").pack()
+entry_password = tk.Entry(root, width=30, show="*")
+entry_password.pack()
+
+tk.Button(root, text="Login", command=login, bg="#28a745", fg="white", width=15).pack(pady=10)
+tk.Button(root, text="Register as New User", command=show_registration, bg="#007acc", fg="white", width=20).pack()
+
+root.mainloop()
+
+# Close the database connection when Tkinter window closes
+conn_obj.close()
